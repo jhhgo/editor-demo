@@ -1,0 +1,14 @@
+.myEditor {
+    width: 100px;
+    height: 100px;
+    border: 1px solid black;
+    box-sizing: border-box;
+    width: 264px;
+    height: 36px;
+    padding: 6px 8px;
+}
+
+.myEditor:focus {
+    outline: none;
+    border: 1px solid #459df5;
+}
