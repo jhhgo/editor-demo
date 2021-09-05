@@ -1,6 +1,6 @@
 import utils from "./util";
 
-export default {
+const domUtils = {
 	filterNodeList: function (nodelist, filter, forAll) {
 		var results = [];
 		if (!utils.isFunction(filter)) {
@@ -10,16 +10,16 @@ export default {
 					utils.indexOf(
 						utils.isArray(str) ? str : str.split(" "),
 						n.tagName.toLowerCase()
-					) != -1
+					) !== -1
 				);
 			};
 		}
 		utils.each(nodelist, function (n) {
 			filter(n) && results.push(n);
 		});
-		return results.length == 0
+		return results.length === 0
 			? null
-			: results.length == 1 || !forAll
+			: results.length === 1 || !forAll
 			? results[0]
 			: results;
 	},
@@ -36,4 +36,6 @@ export default {
 		}
 		return node;
 	},
-};
+}
+
+export default domUtils

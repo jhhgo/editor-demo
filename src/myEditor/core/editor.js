@@ -1,11 +1,11 @@
 import Selection from "./selection";
-// import basestyles from "../plugins/basestyles";
+import basestyles from "../plugins/basestyles";
 
 export default class Editor {
 	constructor() {
 		this.commands = {};
 		this.selection = new Selection();
-		// this.plugins(basestyles);
+		this.plugins(basestyles);
 	}
 	// 富文本操作
 	execCommand() {}

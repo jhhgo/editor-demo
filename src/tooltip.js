@@ -56,7 +56,6 @@ export default class ToolTip extends Component {
 		});
 	};
 	componentDidMount() {
-		console.log(1123);
 	}
 	render() {
 		const { visible, left, top } = this.state;

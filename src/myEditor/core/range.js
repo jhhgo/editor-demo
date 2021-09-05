@@ -48,7 +48,7 @@ export default class Range {
         me.collapsed =
             me.startContainer && me.endContainer &&
             me.startContainer === me.endContainer &&
-            me.startOffset == me.endOffset;
+            me.startOffset === me.endOffset;
     }
     // 给range选区中的内容添加给定的inline标签， 并且为标签附加上一些初始化属性
     applyInlineStyle() { }
@@ -58,7 +58,7 @@ export default class Range {
             function adjust(r, c) {
                 var container = r[c + 'Container'],
                     offset = r[c + 'Offset'];
-                if (container.nodeType == 3) {
+                if (container.nodeType === 3) {
                     if (!offset) {
                         r['set' + c.replace(/(\w)/, function (a) {
                             return a.toUpperCase();

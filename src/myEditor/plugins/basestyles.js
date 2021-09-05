@@ -1,3 +1,5 @@
+import domUtils from '../util/domUtils'
+
 function getObj(editor, tagNames) {
 	return domUtils.filterNodeList(
 		editor.selection.getStartElementPath(),
@@ -5,7 +7,7 @@ function getObj(editor, tagNames) {
 	);
 }
 
-export default function () {
+function basestyles() {
 	const me = this;
 	const basestyles = {
 		bold: ["strong", "b"],
@@ -32,8 +34,8 @@ export default function () {
 								tagNames[0]
 							);
 							if (
-								cmdName == "superscript" ||
-								cmdName == "subscript"
+								cmdName === "superscript" ||
+								cmdName === "subscript"
 							) {
 								tmpText = me.document.createTextNode("");
 								range
@@ -47,10 +49,10 @@ export default function () {
 						range.collapse(true);
 					} else {
 						if (
-							cmdName == "superscript" ||
-							cmdName == "subscript"
+							cmdName === "superscript" ||
+							cmdName === "subscript"
 						) {
-							if (!obj || obj.tagName.toLowerCase() != cmdName) {
+							if (!obj || obj.tagName.toLowerCase() !== cmdName) {
 								range.removeInlineStyle(["sub", "sup"]);
 							}
 						}
@@ -67,3 +69,5 @@ export default function () {
 		})(style, basestyles[style]);
 	}
 }
+
+export default basestyles

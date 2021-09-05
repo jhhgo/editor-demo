@@ -1,6 +1,6 @@
 const utils = {
 	each: function (obj, iterator, context) {
-		if (obj == null) return;
+		if (obj === null) return;
 		if (obj.length === +obj.length) {
 			for (var i = 0, l = obj.length; i < l; i++) {
 				if (iterator.call(context, obj[i], i, obj) === false)
@@ -31,8 +31,8 @@ const utils = {
 utils.each(
 	["String", "Function", "Array", "Number", "RegExp", "Object", "Date"],
 	function (v) {
-		UE.utils["is" + v] = function (obj) {
-			return Object.prototype.toString.apply(obj) == "[object " + v + "]";
+		utils["is" + v] = function (obj) {
+			return Object.prototype.toString.apply(obj) === "[object " + v + "]";
 		};
 	}
 );
