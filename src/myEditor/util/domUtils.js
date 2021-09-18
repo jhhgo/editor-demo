@@ -17,6 +17,15 @@ function getDomNode(node, start, ltr, startFromChild, fn, guard) {
 }
 
 const domUtils = {
+
+	//位置关系
+	POSITION_IDENTICAL: 0,
+	POSITION_DISCONNECTED: 1,
+	POSITION_FOLLOWING: 2,
+	POSITION_PRECEDING: 4,
+	POSITION_IS_CONTAINED: 8,
+	POSITION_CONTAINS: 16,
+	
 	filterNodeList: function (nodelist, filter, forAll) {
 		var results = [];
 		if (!utils.isFunction(filter)) {
@@ -122,6 +131,57 @@ const domUtils = {
 	getNextDomNode: function (node, startFromChild, filterFn, guard) {
 		return getDomNode(node, 'firstChild', 'nextSibling', startFromChild, filterFn, guard);
 	},
+	isWhitespace: function (node) {
+		return !new RegExp('[^ \t\n\r' + domUtils.fillChar + ']').test(node.nodeValue);
+	},
+	// 获取节点A相对于节点B的位置关系
+	getPosition: function (nodeA, nodeB) {
+		// 如果两个节点是同一个节点
+		if (nodeA === nodeB) {
+			// domUtils.POSITION_IDENTICAL
+			return 0;
+		}
+		let node,
+			parentsA = [nodeA],
+			parentsB = [nodeB];
+		node = nodeA;
+		while (node = node.parentNode) {
+			// 如果nodeB是nodeA的祖先节点
+			if (node === nodeB) {
+				// domUtils.POSITION_IS_CONTAINED + domUtils.POSITION_FOLLOWING
+				return 10;
+			}
+			parentsA.push(node);
+		}
+		node = nodeB;
+		while (node = node.parentNode) {
+			// 如果nodeA是nodeB的祖先节点
+			if (node === nodeA) {
+				// domUtils.POSITION_CONTAINS + domUtils.POSITION_PRECEDING
+				return 20;
+			}
+			parentsB.push(node);
+		}
+		parentsA.reverse();
+		parentsB.reverse();
+		if (parentsA[0] !== parentsB[0]) {
+			// domUtils.POSITION_DISCONNECTED
+			return 1;
+		}
+		let i = -1;
+		while (i++ , parentsA[i] === parentsB[i]) {
+		}
+		nodeA = parentsA[i];
+		nodeB = parentsB[i];
+		while (nodeA = nodeA.nextSibling) {
+			if (nodeA === nodeB) {
+				// domUtils.POSITION_PRECEDING
+				return 4;
+			}
+		}
+		// domUtils.POSITION_FOLLOWING
+		return 2;
+	}
 }
 
 export default domUtils

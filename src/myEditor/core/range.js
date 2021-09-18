@@ -70,6 +70,7 @@ export default class Range {
             node,
             pre,
             range = this.cloneRange();
+        debugger
         while (current && (domUtils.getPosition(current, end) & domUtils.POSITION_PRECEDING)) {
             if (current.nodeType == 3 || window.dtd[tagName][current.tagName]) {
                 range.setStartBefore(current);
@@ -340,7 +341,6 @@ export default class Range {
 
     // 创建当前range的一个书签，记录下当前range的位置，方便当dom树改变时，还能找回原来的选区位置
     createBookmark(serialize, same) {
-        debugger
         var endNode,
             startNode = document.createElement('span');
         startNode.style.cssText = 'display:none;line-height:0px;';
@@ -383,5 +383,12 @@ export default class Range {
             this.endOffset = this.endOffset + length;
         }
         return this.setStartBefore(first);
+    }
+
+    // clone当前Range对象
+    cloneRange() {
+        var me = this;
+        return new Range(me.document).setStart(me.startContainer, me.startOffset).setEnd(me.endContainer, me.endOffset);
+
     }
 }
