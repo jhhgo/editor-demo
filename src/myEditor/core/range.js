@@ -7,6 +7,7 @@ export default class Range {
         this.endContainer = null
         this.endOffset = null
         this.collapsed = true
+        this.guid = 0
     }
     setStart(node, offset) {
         return this.setEndPoint(true, node, offset)
@@ -30,6 +31,7 @@ export default class Range {
             }
         }
         me.updateCollapse();
+        return me
     }
     // 闭合选区
     collapse(toStart) {
@@ -54,7 +56,6 @@ export default class Range {
     }
     // 给range选区中的内容添加给定的inline标签， 并且为标签附加上一些初始化属性
     applyInlineStyle(tagName, attrs, list) {
-
         if (this.collapsed) return this;
         this.trimBoundary().enlarge(false,
             function (node) {
@@ -189,10 +190,11 @@ export default class Range {
         return this;
     }
 
+    // 调整range的边界，使其"放大"到最近的父节点
+    // 据参数 toBlock 的取值， 可以要求扩大之后的父节点是block节点
     enlarge(isToBlock, stopFn) {
-
         var isBody = domUtils.isBody,
-            pre, node, tmp = this.document.createTextNode('');
+            pre, node, tmp = document.createTextNode('');
         if (isToBlock) {
             node = this.startContainer;
             if (node.nodeType == 1) {
@@ -268,5 +270,118 @@ export default class Range {
             }
         }
         return this;
+    }
+
+    // 调整range的开始位置和结束位置，使其"收缩"到最小的位置
+    // 如果ignoreEnd的值为true，则忽略对结束位置的调整
+    shrinkBoundary(ignoreEnd) {
+        var me = this, child,
+            collapsed = me.collapsed;
+        function check(node) {
+            return node.nodeType == 1 && !domUtils.isBookmarkNode(node) && !window.dtd.$empty[node.tagName] && !window.dtd.$nonChild[node.tagName]
+        }
+        while (me.startContainer.nodeType == 1 //是element
+            && (child = me.startContainer.childNodes[me.startOffset]) //子节点也是element
+            && check(child)) {
+            me.setStart(child, 0);
+        }
+        if (collapsed) {
+            return me.collapse(true);
+        }
+        if (!ignoreEnd) {
+            while (me.endContainer.nodeType == 1//是element
+                && me.endOffset > 0 //如果是空元素就退出 endOffset=0那么endOffst-1为负值，childNodes[endOffset]报错
+                && (child = me.endContainer.childNodes[me.endOffset - 1]) //子节点也是element
+                && check(child)) {
+                me.setEnd(child, child.childNodes.length);
+            }
+        }
+        return me;
+    }
+
+    // 将Range开始位置设置到node节点之后
+    setStartAfter(node) {
+        return this.setStart(node.parentNode, domUtils.getNodeIndex(node) + 1);
+    }
+
+    // 将Range结束位置设置到node节点之后
+    setEndAfter (node) {
+        return this.setEnd(node.parentNode, domUtils.getNodeIndex(node) + 1);
+    }
+
+    // 将Range结束位置设置到node节点之前
+    setEndBefore(node) {
+        return this.setEnd(node.parentNode, domUtils.getNodeIndex(node));
+    }
+
+    // 将Range开始位置设置到node节点之前
+    setStartBefore (node) {
+        return this.setStart(node.parentNode, domUtils.getNodeIndex(node));
+    }
+
+    // 调整Range的边界，使其"缩小"到最合适的位置
+    adjustmentBoundary() {
+        if (!this.collapsed) {
+            while (!domUtils.isBody(this.startContainer) &&
+                this.startOffset == this.startContainer[this.startContainer.nodeType == 3 ? 'nodeValue' : 'childNodes'].length &&
+                this.startContainer[this.startContainer.nodeType == 3 ? 'nodeValue' : 'childNodes'].length
+            ) {
+
+                this.setStartAfter(this.startContainer);
+            }
+            while (!domUtils.isBody(this.endContainer) && !this.endOffset &&
+                this.endContainer[this.endContainer.nodeType == 3 ? 'nodeValue' : 'childNodes'].length
+            ) {
+                this.setEndBefore(this.endContainer);
+            }
+        }
+        return this;
+    }
+
+    // 创建当前range的一个书签，记录下当前range的位置，方便当dom树改变时，还能找回原来的选区位置
+    createBookmark(serialize, same) {
+        debugger
+        var endNode,
+            startNode = document.createElement('span');
+        startNode.style.cssText = 'display:none;line-height:0px;';
+        startNode.appendChild(document.createTextNode('\u200D'));
+        startNode.id = '_baidu_bookmark_start_' + (same ? '' : this.guid++);
+
+        if (!this.collapsed) {
+            endNode = startNode.cloneNode(true);
+            endNode.id = '_baidu_bookmark_end_' + (same ? '' : this.guid++);
+        }
+        this.insertNode(startNode);
+        if (endNode) {
+            this.collapse().insertNode(endNode).setEndBefore(endNode);
+        }
+        this.setStartAfter(startNode);
+        return {
+            start: serialize ? startNode.id : startNode,
+            end: endNode ? serialize ? endNode.id : endNode : null,
+            id: serialize
+        }
+    }
+
+    // 在当前选区的开始位置前插入节点，新插入的节点会被该range包含
+    insertNode(node) {
+        var first = node, length = 1;
+        if (node.nodeType == 11) {
+            first = node.firstChild;
+            length = node.childNodes.length;
+        }
+        this.trimBoundary(true);
+        var start = this.startContainer,
+            offset = this.startOffset;
+        var nextNode = start.childNodes[offset];
+        if (nextNode) {
+            start.insertBefore(node, nextNode);
+        } else {
+            start.appendChild(node);
+        }
+        if (first.parentNode === this.endContainer) {
+            this.endOffset = this.endOffset + length;
+        }
+        return this.setStartBefore(first);
     }
 }

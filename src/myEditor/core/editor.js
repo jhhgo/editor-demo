@@ -13,7 +13,7 @@ export default class Editor {
 	// 初始化事件
 	_initEvents() {
 		const me = this
-		$(document).on('mouseup', function (e) {
+		$(document).on('mouseup', '.myEditor', function (e) {
 			me._selectionChange(250, e)
 		})
 	}

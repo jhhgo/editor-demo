@@ -16,7 +16,6 @@ export default class MyEditor extends Component {
 			this.editorRef.current.className.replace(" myEditor-focus", "");
 	};
 	test = () => {
-		debugger
 		this.editor.execCommand('bold')
 	};
 	render() {
