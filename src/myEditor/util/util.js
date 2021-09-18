@@ -26,6 +26,19 @@ const utils = {
 		});
 		return index;
 	},
+
+	extend2: function (t) {
+		var a = arguments;
+		for (var i = 1; i < a.length; i++) {
+			var x = a[i];
+			for (var k in x) {
+				if (!t.hasOwnProperty(k)) {
+					t[k] = x[k];
+				}
+			}
+		}
+		return t;
+	}
 };
 
 utils.each(

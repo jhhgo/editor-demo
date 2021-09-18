@@ -6,8 +6,7 @@ export default class MyEditor extends Component {
 	constructor(props) {
 		super(props);
 		this.editorRef = createRef();
-		this.editor = new Editor();
-		console.log(this.editor.commands)
+		window.editor = this.editor = new Editor();
 	}
 	editorFocus = () => {
 		this.editorRef.current.className += " myEditor-focus";
@@ -17,7 +16,8 @@ export default class MyEditor extends Component {
 			this.editorRef.current.className.replace(" myEditor-focus", "");
 	};
 	test = () => {
-		console.log(this.editor.selection.getRange());
+		debugger
+		this.editor.execCommand('bold')
 	};
 	render() {
 		return (
