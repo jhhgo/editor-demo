@@ -15,9 +15,12 @@ export default class MyEditor extends Component {
 		this.editorRef.current.className =
 			this.editorRef.current.className.replace(" myEditor-focus", "");
 	};
-	test = () => {
+	bold = () => {
 		this.editor.execCommand('bold')
 	};
+	italic = () => {
+		this.editor.execCommand('italic')
+	}
 	render() {
 		return (
 			<>
@@ -29,7 +32,8 @@ export default class MyEditor extends Component {
 					onBlur={this.editorBlur}
 				></div>
 				<br />
-				<button onClick={this.test}>加粗</button>
+				<button onClick={this.bold}>加粗</button>
+				<button onClick={this.italic}>斜体</button>
 			</>
 		);
 	}
