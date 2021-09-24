@@ -48,6 +48,7 @@ const domUtils = {
 			? results[0]
 			: results;
 	},
+	// 删除节点node，并根据keepChildren的值决定是否保留子节点
 	remove: function (node, keepChildren) {
 		var parent = node.parentNode,
 			child;
@@ -181,7 +182,147 @@ const domUtils = {
 		}
 		// domUtils.POSITION_FOLLOWING
 		return 2;
-	}
+	},
+	// 合并节点node的左右兄弟节点
+	mergeSibling: function (node, ignorePre, ignoreNext) {
+		function merge(rtl, start, node) {
+			var next;
+			if ((next = node[rtl]) && !domUtils.isBookmarkNode(next) && next.nodeType == 1 && domUtils.isSameElement(node, next)) {
+				while (next.firstChild) {
+					if (start == 'firstChild') {
+						node.insertBefore(next.lastChild, node.firstChild);
+					} else {
+						node.appendChild(next.firstChild);
+					}
+				}
+				domUtils.remove(next);
+			}
+		}
+		!ignorePre && merge('previousSibling', 'firstChild', node);
+		!ignoreNext && merge('nextSibling', 'lastChild', node);
+	},
+	// 清除node节点左右连续为空的兄弟inline节点
+	clearEmptySibling: function (node, ignoreNext, ignorePre) {
+		function clear(next, dir) {
+			var tmpNode;
+			while (next && !domUtils.isBookmarkNode(next) && (domUtils.isEmptyInlineElement(next)
+				//这里不能把空格算进来会吧空格干掉，出现文字间的空格丢掉了
+				|| !new RegExp('[^\t\n\r' + domUtils.fillChar + ']').test(next.nodeValue))) {
+				tmpNode = next[dir];
+				domUtils.remove(next);
+				next = tmpNode;
+			}
+		}
+		!ignoreNext && clear(node.nextSibling, 'nextSibling');
+		!ignorePre && clear(node.previousSibling, 'previousSibling');
+	},
+	// 合并node节点下相同的子节点
+	mergeChild: function (node, tagName, attrs) {
+		var list = domUtils.getElementsByTagName(node, node.tagName.toLowerCase());
+		for (var i = 0, ci; ci = list[i++];) {
+			if (!ci.parentNode || domUtils.isBookmarkNode(ci)) {
+				continue;
+			}
+			//span单独处理
+			if (ci.tagName.toLowerCase() == 'span') {
+				if (node === ci.parentNode) {
+					domUtils.trimWhiteTextNode(node);
+					if (node.childNodes.length == 1) {
+						node.style.cssText = ci.style.cssText + ";" + node.style.cssText;
+						domUtils.remove(ci, true);
+						continue;
+					}
+				}
+				if (domUtils.isSameStyle(ci, node)) {
+					domUtils.remove(ci, true);
+				}
+				continue;
+			}
+			if (domUtils.isSameElement(node, ci)) {
+				domUtils.remove(ci, true);
+			}
+		}
+	},
+	// 将节点node提取到父节点上
+	mergeToParent: function (node) {
+		var parent = node.parentNode;
+		while (parent && window.dtd.$removeEmpty[parent.tagName]) {
+			if (parent.tagName == node.tagName || parent.tagName == 'A') {//针对a标签单独处理
+				domUtils.trimWhiteTextNode(parent);
+				//span需要特殊处理  不处理这样的情况 <span stlye="color:#fff">xxx<span style="color:#ccc">xxx</span>xxx</span>
+				if (parent.tagName == 'SPAN' && !domUtils.isSameStyle(parent, node)
+					|| (parent.tagName == 'A' && node.tagName == 'SPAN')) {
+					if (parent.childNodes.length > 1 || parent !== node.parentNode) {
+						node.style.cssText = parent.style.cssText + ";" + node.style.cssText;
+						parent = parent.parentNode;
+						continue;
+					} else {
+						parent.style.cssText += ";" + node.style.cssText;
+						//trace:952 a标签要保持下划线
+						if (parent.tagName == 'A') {
+							parent.style.textDecoration = 'underline';
+						}
+					}
+				}
+				if (parent.tagName != 'A') {
+					parent === node.parentNode && domUtils.remove(node, true);
+					break;
+				}
+			}
+			parent = parent.parentNode;
+		}
+	},
+	// 删除node节点下首尾两端的空白文本子节点
+	trimWhiteTextNode: function (node) {
+		function remove(dir) {
+			var child;
+			while ((child = node[dir]) && child.nodeType == 3 && domUtils.isWhitespace(child)) {
+				node.removeChild(child);
+			}
+		}
+		remove('firstChild');
+		remove('lastChild');
+	},
+	// 检测文本节点textNode是否为空节点（包括空格、换行、占位符等字符）
+	isWhitespace: function (node) {
+		return !new RegExp('[^ \t\n\r' + domUtils.fillChar + ']').test(node.nodeValue);
+	},
+	getElementsByTagName: function (node, name, filter) {
+		if (filter && utils.isString(filter)) {
+			var className = filter;
+			filter = function (node) { return domUtils.hasClass(node, className) }
+		}
+		name = name.trim().replace(/[ ]{2,}/g, ' ').split(' ');
+		var arr = [];
+		for (var n = 0, ni; ni = name[n++];) {
+			var list = node.getElementsByTagName(ni);
+			for (var i = 0, ci; ci = list[i++];) {
+				if (!filter || filter(ci))
+					arr.push(ci);
+			}
+		}
+
+		return arr;
+	},
+	// 判断节点nodeA与节点nodeB的元素的style属性是否一致
+	isSameStyle: function (nodeA, nodeB) {
+		var styleA = nodeA.style.cssText.replace(/( ?; ?)/g, ';').replace(/( ?: ?)/g, ':'),
+			styleB = nodeB.style.cssText.replace(/( ?; ?)/g, ';').replace(/( ?: ?)/g, ':');
+		if (!styleA || !styleB) {
+			return styleA == styleB;
+		}
+		styleA = styleA.split(';');
+		styleB = styleB.split(';');
+		if (styleA.length != styleB.length) {
+			return false;
+		}
+		for (var i = 0, ci; ci = styleA[i++];) {
+			if (utils.indexOf(styleB, ci) == -1) {
+				return false;
+			}
+		}
+		return true;
+	},
 }
 
 export default domUtils

@@ -14,6 +14,7 @@ export default class Selection {
 	getRange() {
 		const sel = this.getNative();
 		const range = new Range();
+		window._range = range
 		const firstRange = sel.getRangeAt(0);
 		const lastRange = sel.getRangeAt(sel.rangeCount - 1);
 		range.setStart(firstRange.startContainer, firstRange.startOffset);

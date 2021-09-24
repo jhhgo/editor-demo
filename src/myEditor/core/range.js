@@ -70,7 +70,6 @@ export default class Range {
             node,
             pre,
             range = this.cloneRange();
-        debugger
         while (current && (domUtils.getPosition(current, end) & domUtils.POSITION_PRECEDING)) {
             if (current.nodeType == 3 || window.dtd[tagName][current.tagName]) {
                 range.setStartBefore(current);
@@ -91,7 +90,7 @@ export default class Range {
                     }
                     elm = level;
                 } else {
-                    elm = range.document.createElement(tagName);
+                    elm = document.createElement(tagName);
                 }
                 if (attrs) {
                     domUtils.setAttributes(elm, attrs);
@@ -391,4 +390,173 @@ export default class Range {
         return new Range(me.document).setStart(me.startContainer, me.startOffset).setEnd(me.endContainer, me.endOffset);
 
     }
+
+    // 将当前选区的内容提取到一个DocumentFragment里
+    // 执行该操作后， 选区将变成闭合状态
+    // 执行该操作后， 原来选区所选中的内容将从dom树上剥离出来
+    extractContents() {
+        return this.collapsed ? null : this.execContentsAction(2);
+    }
+
+    execContentsAction(action) {
+        //调整边界
+        //range.includeBookmark();
+        var start = this.startContainer,
+            end = this.endContainer,
+            startOffset = this.startOffset,
+            endOffset = this.endOffset,
+            frag = document.createDocumentFragment(),
+            tmpStart, tmpEnd;
+        if (start.nodeType == 1) {
+            start = start.childNodes[startOffset] || (tmpStart = start.appendChild(document.createTextNode('')));
+        }
+        if (end.nodeType == 1) {
+            end = end.childNodes[endOffset] || (tmpEnd = end.appendChild(document.createTextNode('')));
+        }
+        if (start === end && start.nodeType == 3) {
+            frag.appendChild(document.createTextNode(start.substringData(startOffset, endOffset - startOffset)));
+            //is not clone
+            if (action) {
+                start.deleteData(startOffset, endOffset - startOffset);
+                this.collapse(true);
+            }
+            return frag;
+        }
+        var current, currentLevel, clone = frag,
+            startParents = domUtils.findParents(start, true), endParents = domUtils.findParents(end, true);
+        for (var i = 0; startParents[i] == endParents[i];) {
+            i++;
+        }
+        for (var j = i, si; si = startParents[j]; j++) {
+            current = si.nextSibling;
+            if (si == start) {
+                if (!tmpStart) {
+                    if (this.startContainer.nodeType == 3) {
+                        clone.appendChild(document.createTextNode(start.nodeValue.slice(startOffset)));
+                        //is not clone
+                        if (action) {
+                            start.deleteData(startOffset, start.nodeValue.length - startOffset);
+                        }
+                    } else {
+                        clone.appendChild(!action ? start.cloneNode(true) : start);
+                    }
+                }
+            } else {
+                currentLevel = si.cloneNode(false);
+                clone.appendChild(currentLevel);
+            }
+            while (current) {
+                if (current === end || current === endParents[j]) {
+                    break;
+                }
+                si = current.nextSibling;
+                clone.appendChild(!action ? current.cloneNode(true) : current);
+                current = si;
+            }
+            clone = currentLevel;
+        }
+        clone = frag;
+        if (!startParents[i]) {
+            clone.appendChild(startParents[i - 1].cloneNode(false));
+            clone = clone.firstChild;
+        }
+        for (var j = i, ei; ei = endParents[j]; j++) {
+            current = ei.previousSibling;
+            if (ei == end) {
+                if (!tmpEnd && this.endContainer.nodeType == 3) {
+                    clone.appendChild(document.createTextNode(end.substringData(0, endOffset)));
+                    //is not clone
+                    if (action) {
+                        end.deleteData(0, endOffset);
+                    }
+                }
+            } else {
+                currentLevel = ei.cloneNode(false);
+                clone.appendChild(currentLevel);
+            }
+            //如果两端同级，右边第一次已经被开始做了
+            if (j != i || !startParents[i]) {
+                while (current) {
+                    if (current === start) {
+                        break;
+                    }
+                    ei = current.previousSibling;
+                    clone.insertBefore(!action ? current.cloneNode(true) : current, clone.firstChild);
+                    current = ei;
+                }
+            }
+            clone = currentLevel;
+        }
+        if (action) {
+            this.setStartBefore(!endParents[i] ? endParents[i - 1] : !startParents[i] ? startParents[i - 1] : endParents[i]).collapse(true);
+        }
+        tmpStart && domUtils.remove(tmpStart);
+        tmpEnd && domUtils.remove(tmpEnd);
+        return frag;
+    }
+
+    moveToBookmark (bookmark) {
+        var start = bookmark.id ? this.document.getElementById(bookmark.start) : bookmark.start,
+            end = bookmark.end && bookmark.id ? this.document.getElementById(bookmark.end) : bookmark.end;
+        this.setStartBefore(start);
+        domUtils.remove(start);
+        if (end) {
+            this.setEndBefore(end);
+            domUtils.remove(end);
+        } else {
+            this.collapse(true);
+        }
+        return this;
+    }
+
+    // // 在页面上高亮range所表示的选区
+    // select (notInsertFillData) {
+    //     function checkOffset(rng) {
+
+    //         function check(node, offset, dir) {
+    //             if (node.nodeType == 3 && node.nodeValue.length < offset) {
+    //                 rng[dir + 'Offset'] = node.nodeValue.length
+    //             }
+    //         }
+    //         check(rng.startContainer, rng.startOffset, 'start');
+    //         check(rng.endContainer, rng.endOffset, 'end');
+    //     }
+    //     var win = window
+    //         sel = window.getSelection(),
+    //         txtNode;
+    //     win.focus();
+    //     if (sel) {
+    //         sel.removeAllRanges();
+    //         if (this.collapsed && !notInsertFillData) {
+    //             var start = this.startContainer, child = start;
+    //             if (start.nodeType == 1) {
+    //                 child = start.childNodes[this.startOffset];
+
+    //             }
+    //             if (!(start.nodeType == 3 && this.startOffset) &&
+    //                 (child ?
+    //                     (!child.previousSibling || child.previousSibling.nodeType != 3)
+    //                     :
+    //                     (!start.lastChild || start.lastChild.nodeType != 3)
+    //                 )
+    //             ) {
+    //                 txtNode = this.document.createTextNode(fillChar);
+    //                 //跟着前边走
+    //                 this.insertNode(txtNode);
+    //                 removeFillData(this.document, txtNode);
+    //                 mergeSibling(txtNode, 'previousSibling');
+    //                 mergeSibling(txtNode, 'nextSibling');
+    //                 fillData = txtNode;
+    //                 this.setStart(txtNode, browser.webkit ? 1 : 0).collapse(true);
+    //             }
+    //         }
+    //         var nativeRange = document.createRange();
+    //         //是createAddress最后一位算的不准，现在这里进行微调
+    //         checkOffset(this);
+    //         nativeRange.setStart(this.startContainer, this.startOffset);
+    //         nativeRange.setEnd(this.endContainer, this.endOffset);
+    //         sel.addRange(nativeRange);
+    //     }
+    //     return this;
+    // }
 }

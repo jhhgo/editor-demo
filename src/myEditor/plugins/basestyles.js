@@ -60,7 +60,7 @@ function basestyles() {
 							? range.removeInlineStyle(tagNames)
 							: range.applyInlineStyle(tagNames[0]);
 					}
-					range.select();
+					// range.select();
 				},
 				queryCommandState: function () {
 					return getObj(this, tagNames) ? 1 : 0;
