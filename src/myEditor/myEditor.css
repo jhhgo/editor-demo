@@ -1,10 +1,20 @@
-.myEditor {
-    width: 100px;
-    height: 100px;
+.editor-wrap {
+    margin: 0 auto;
+}
+
+.btn-wrap {
+    margin-bottom: 10px;
+}
+
+.btn-wrap button, .btn-wrap select {
+    margin-right: 10px;
+}
+
+.editor {
+    width: 800px;
+    height: 300px;
     border: 1px solid black;
     box-sizing: border-box;
-    width: 264px;
-    height: 36px;
     padding: 6px 8px;
 }
 
